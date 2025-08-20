@@ -344,7 +344,7 @@ function useIdleLock(password) {
 /* Hook pentru gestionarea snapshot-urilor zilnice cu localStorage - CORECTAT CU BACKUP */
 function useDailySnapshot(storageKey, initialRows) {
   const [date, setDate] = useState(keyForDate(new Date()));
-  const [compare, setCompare] = useState(prevDayKey(keyForDate(new Date())));
+  const [compare, setCompare] = useState(keyForDate(new Date()));
   const [map, setMap] = useState(() => {
     try {
       const raw = localStorage.getItem(storageKey);
@@ -410,16 +410,7 @@ const SnapshotBar = ({ date, setDate, compare, setCompare, totalToday, totalComp
         <input 
           type="date" 
           value={compare} 
-          onChange={(e)=>{
-            const newCompare = e.target.value;
-            if (newCompare === date) {
-              // Dacă se încearcă să se selecteze aceeași dată, setează ziua anterioară
-              const prevDay = prevDayKey(date);
-              setCompare(prevDay);
-            } else {
-              setCompare(newCompare);
-            }
-          }} 
+          onChange={(e)=>setCompare(e.target.value)} 
           className={`appearance-none px-3 py-2 rounded-lg border ${
             isDarkTheme 
               ? "bg-white/10 border-white/20 text-white/90" 
@@ -492,22 +483,6 @@ function MonthlyExpenses({ guard, isDarkTheme = true }) {
   useEffect(() => {
     setPurchCmp(sourcesCmp);
   }, [sourcesCmp, setPurchCmp]);
-
-  /* CORECTAT: Sincronizează cu data globală din App */
-  useEffect(() => {
-    if (window.globalAppDate && window.globalAppDate !== sourcesDate) {
-      setSourcesDate(window.globalAppDate);
-    }
-  }, [window.globalAppDate, sourcesDate, setSourcesDate]);
-
-  /* CORECTAT: Sincronizează și data de comparație cu data globală */
-  useEffect(() => {
-    if (window.globalAppDate && sourcesCmp === window.globalAppDate) {
-      // Dacă data de comparație este aceeași cu data curentă, setează-o pe ziua anterioară
-      const prevDay = prevDayKey(window.globalAppDate);
-      setSourcesCmp(prevDay);
-    }
-  }, [window.globalAppDate, sourcesCmp, setSourcesCmp]);
 
   return (
     <GlassCard title="Cheltuieli lunare (salvare pe zile)" isDarkTheme={isDarkTheme}>
@@ -959,14 +934,6 @@ export default function App() {
     window.globalAppDate = globalDate;
   }, [globalDate]);
 
-  /* CORECTAT: Sincronizează TOATE datele din toate tab-urile cu data globală */
-  useEffect(() => {
-    setDebDate(globalDate);
-    setCashDate(globalDate);
-    setPortDate(globalDate);
-    setRecvDate(globalDate);
-  }, [globalDate, setDebDate, setCashDate, setPortDate, setRecvDate]);
-
   return (
     <div className={`min-h-screen w-full transition-colors duration-300 ${
       isDarkTheme 
@@ -1204,7 +1171,7 @@ export default function App() {
             {(() => { 
               const totalToday = debts.reduce((s,r)=> s+toNum(r.valoare),0); 
               const totalCmp = (getDebRows(debCmp)||[]).reduce((s,r)=> s+toNum(r.valoare),0); 
-              return <SnapshotBar date={globalDate} setDate={setGlobalDate} compare={debCmp} setCompare={setDebCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență datorii" isDarkTheme={isDarkTheme}/>; 
+              return <SnapshotBar date={debDate} setDate={setDebDate} compare={debCmp} setCompare={setDebCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență datorii" isDarkTheme={isDarkTheme}/>; 
             })()}
             <Table
               columns={[
@@ -1270,7 +1237,7 @@ export default function App() {
             {(() => { 
               const totalToday = cash.reduce((s,r)=> s+toNum(r.sold),0); 
               const totalCmp = (getCashRows(cashCmp)||[]).reduce((s,r)=> s+toNum(r.sold),0); 
-              return <SnapshotBar date={globalDate} setDate={setGlobalDate} compare={cashCmp} setCompare={setCashCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență cash" isDarkTheme={isDarkTheme}/>; 
+              return <SnapshotBar date={cashDate} setDate={setCashDate} compare={cashCmp} setCompare={setCashCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență cash" isDarkTheme={isDarkTheme}/>; 
             })()}
             <Table
               columns={[
@@ -1296,7 +1263,7 @@ export default function App() {
             {(() => { 
               const totalToday = recv.reduce((s,r)=> s+toNum(r.suma),0); 
               const totalCmp = (getRecvRows(recvCmp)||[]).reduce((s,r)=> s+toNum(r.suma),0); 
-              return <SnapshotBar date={globalDate} setDate={setGlobalDate} compare={recvCmp} setCompare={setRecvCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență creanțe" isDarkTheme={isDarkTheme}/>; 
+              return <SnapshotBar date={recvDate} setDate={setRecvDate} compare={recvCmp} setCompare={setRecvCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență creanțe" isDarkTheme={isDarkTheme}/>; 
             })()}
             <Table
               columns={[
@@ -1322,7 +1289,7 @@ export default function App() {
             {(() => { 
               const totalToday = portfolio.reduce((s,r)=> s + toNum(r.actiuni)*toNum(r.pret), 0); 
               const totalCmp = (getPortRows(portCmp)||[]).reduce((s,r)=> s + toNum(r.actiuni)*toNum(r.pret), 0); 
-              return <SnapshotBar date={globalDate} setDate={setGlobalDate} compare={portCmp} setCompare={setPortCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență portofoliu (valoare curentă)" isDarkTheme={isDarkTheme}/>; 
+              return <SnapshotBar date={portDate} setDate={setPortDate} compare={portCmp} setCompare={setPortCmp} totalToday={totalToday} totalCompare={totalCmp} label="Diferență portofoliu (valoare curentă)" isDarkTheme={isDarkTheme}/>; 
             })()}
             <Table columns={portColumns} rows={portfolio} setRows={setPortfolio} totalsLabel="TOTALURI" guard={ensureUnlocked} isDarkTheme={isDarkTheme} />
             <div className="mt-2 text-sm">
@@ -1436,7 +1403,7 @@ export default function App() {
                 const atCash = (k) => (getCashRows(k)||cashInitial).reduce((s,r)=>s+toNum(r.sold),0);
                 const atRecv = (k) => (getRecvRows(k)||recvInitial).reduce((s,r)=>s+toNum(r.suma),0);
                 const atPort = (k) => (getPortRows(k)||portInitial).reduce((s,r)=>s+toNum(r.actiuni)*toNum(r.pret),0);
-                const [balDate, setBalDate] = [globalDate, setGlobalDate];
+                const [balDate, setBalDate] = [debDate, setDebDate];
                 const [balCmp, setBalCmp] = [debCmp, setDebCmp];
                 const netToday = atCash(balDate) + atRecv(balDate) + atPort(balDate) - atDeb(balDate);
                 const netCmp = atCash(balCmp) + atRecv(balCmp) + atPort(balCmp) - atDeb(balCmp);
@@ -1469,7 +1436,7 @@ export default function App() {
                 const pts = series.map((p,idx)=>{ const x=pad+(w-2*pad)*idx/(series.length-1); const y=h-pad-(h-2*pad)*(p.v-mi)/range; return `${x},${y}`; }).join(" ");
                 return (
                   <div>
-                    <SnapshotBar date={globalDate} setDate={setGlobalDate} compare={cashCmp} setCompare={setCashCmp} totalToday={tot(globalDate)} totalCompare={tot(cashCmp)} label="Diferență cash" isDarkTheme={isDarkTheme} />
+                    <SnapshotBar date={cashDate} setDate={setCashDate} compare={cashCmp} setCompare={setCashCmp} totalToday={tot(cashDate)} totalCompare={tot(cashCmp)} label="Diferență cash" isDarkTheme={isDarkTheme} />
                     <div className={`rounded-xl border p-3 ${isDarkTheme ? "bg-white/10 border-white/20" : "bg-black/5 border-black/10"}`}><svg viewBox={`0 0 ${320} ${60}`} className="w-full h-16"><polyline fill="none" stroke="currentColor" strokeWidth="2" className="text-sky-300" points={pts} /></svg></div>
                   </div>
                 );
@@ -1485,7 +1452,7 @@ export default function App() {
                 const pts = series.map((p,idx)=>{ const x=pad+(w-2*pad)*idx/(series.length-1); const y=h-pad-(h-2*pad)*(p.v-mi)/range; return `${x},${y}`; }).join(" ");
                 return (
                   <div>
-                    <SnapshotBar date={globalDate} setDate={setGlobalDate} compare={recvCmp} setCompare={setRecvCmp} totalToday={tot(globalDate)} totalCompare={tot(recvCmp)} label="Diferență creanțe" isDarkTheme={isDarkTheme} />
+                    <SnapshotBar date={recvDate} setDate={setRecvDate} compare={recvCmp} setCompare={setRecvCmp} totalToday={tot(recvDate)} totalCompare={tot(recvCmp)} label="Diferență creanțe" isDarkTheme={isDarkTheme} />
                     <div className={`rounded-xl border p-3 ${isDarkTheme ? "bg-white/10 border-white/20" : "bg-black/5 border-black/10"}`}><svg viewBox={`0 0 ${320} ${60}`} className="w-full h-16"><polyline fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-300" points={pts} /></svg></div>
                   </div>
                 );
@@ -1501,7 +1468,7 @@ export default function App() {
                 const pts = series.map((p,idx)=>{ const x=pad+(w-2*pad)*idx/(series.length-1); const y=h-pad-(h-2*pad)*(p.v-mi)/range; return `${x},${y}`; }).join(" ");
                 return (
                   <div>
-                    <SnapshotBar date={globalDate} setDate={setGlobalDate} compare={portCmp} setCompare={setPortCmp} totalToday={tot(globalDate)} totalCompare={tot(portCmp)} label="Diferență portofoliu" isDarkTheme={isDarkTheme} />
+                    <SnapshotBar date={portDate} setDate={setPortDate} compare={portCmp} setCompare={setPortCmp} totalToday={tot(portDate)} totalCompare={tot(portCmp)} label="Diferență portofoliu" isDarkTheme={isDarkTheme} />
                     <div className={`rounded-xl border p-3 ${isDarkTheme ? "bg-white/10 border-white/20" : "bg-black/5 border-black/10"}`}><svg viewBox={`0 0 ${320} ${60}`} className="w-full h-16"><polyline fill="none" stroke="currentColor" strokeWidth="2" className="text-fuchsia-300" points={pts} /></svg></div>
                   </div>
                 );
