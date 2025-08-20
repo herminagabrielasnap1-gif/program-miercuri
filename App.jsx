@@ -448,7 +448,7 @@ const defaultPurchases = ["LOLITA","PPC","ENGIE","YOXO","DIGI","APACANAL","ECOVO
    =============================================== */
 
 
-function MonthlyExpenses({ guard, isDarkTheme = true }) {
+function MonthlyExpenses({ guard, isDarkTheme = true, resetSignal, globalDate }) {
   /* Datele inițiale pentru surse și cheltuieli */
   const sourcesInitial = [
     { suma:319, sursa:"BT PFA" },{ suma:813, sursa:"REVOLUT" },{ suma:0, sursa:"CARMEN" },{ suma:16, sursa:"BT PERSONAL" },
@@ -468,6 +468,14 @@ function MonthlyExpenses({ guard, isDarkTheme = true }) {
   /* CORECTAT: Acum folosește useDailySnapshot pentru salvare pe zile */
   const { date: sourcesDate, setDate: setSourcesDate, compare: sourcesCmp, setCompare: setSourcesCmp, rows: sources, setRows: setSources, getRows: getSourcesRows } = useDailySnapshot("monthlySources", sourcesInitial);
   const { date: purchDate, setDate: setPurchDate, compare: purchCmp, setCompare: setPurchCmp, rows: purchases, setRows: setPurchases, getRows: getPurchRows } = useDailySnapshot("monthlyPurchases", purchasesInitial);
+
+  /* Reset la AZI pentru acest tab când se apasă butonul global "Azi" */
+  useEffect(() => {
+    if (globalDate) {
+      setSourcesDate(globalDate);
+      setPurchDate(globalDate);
+    }
+  }, [resetSignal, globalDate]);
 
   /* Calculele pentru totaluri */
   const totalSources = useMemo(() => sources.reduce((s,r)=> s + toNum(r.suma), 0), [sources]);
@@ -582,6 +590,7 @@ export default function App() {
 
   /* STARE GLOBALĂ PENTRU DATA - NOUĂ FUNCȚIONALITATE - PORNEȘTE MEREU CU DATA DE AZI */
   const [globalDate, setGlobalDate] = useState(keyForDate(new Date()));
+  const [resetTick, setResetTick] = useState(0);
 
   /* STARE PENTRU TEMA - NOUĂ FUNCȚIONALITATE */
   const [isDarkTheme, setIsDarkTheme] = useState(() => {
@@ -981,7 +990,15 @@ export default function App() {
               
               {/* DATA DE AZI CLICKABILĂ - NOUĂ FUNCȚIONALITATE */}
               <button
-                onClick={() => setGlobalDate(keyForDate(new Date()))}
+                onClick={() => {
+                  const k = keyForDate(new Date());
+                  setGlobalDate(k);
+                  setDebDate(k);
+                  setCashDate(k);
+                  setRecvDate(k);
+                  setPortDate(k);
+                  setResetTick(t => t + 1);
+                }}
                 className={`px-2 py-1 rounded-full text-xs border transition-all hover:scale-105 cursor-pointer ${
                   isDarkTheme 
                     ? "bg-white/15 text-white/80 border-white/20 hover:bg-white/25" 
@@ -1152,13 +1169,13 @@ export default function App() {
             </div>
           </GlassCard>
         )}
-		
+ 		
   {/* ===============================================
             SFÂRȘITUL PĂRȚII 3 SFÂRȘITUL PĂRȚII 3 - CORECTAT CU TEMĂ ȘI DATA CLICKABILĂ - ÎNCEPUTUL PĂRȚII 4
             PARTEA 4: TAB-URILE PENTRU DATORII, ANAF, CASH, CREANȚE ȘI PORTOFOLIU - CORECTAT
-			Această parte conține tab-urile pentru gestionarea datoriilor și taxelor,
-			graficul de plăți ANAF, conturile de cash, creanțele clienților și portofoliul de acțiuni
-			TOATE CU SALVARE AUTOMATĂ PE ZILE ÎN LOCALSTORAGE ȘI ADAPTATE LA TEMĂ
+ 			Această parte conține tab-urile pentru gestionarea datoriilor și taxelor,
+ 			graficul de plăți ANAF, conturile de cash, creanțele clienților și portofoliul de acțiuni
+ 			TOATE CU SALVARE AUTOMATĂ PE ZILE ÎN LOCALSTORAGE ȘI ADAPTATE LA TEMĂ
             =============================================== */}
 
    {/* TABUL "DATORII & TAXE" - Gestionarea datoriilor și taxelor */}
@@ -1478,7 +1495,7 @@ export default function App() {
         )}
 
         {/* TABUL "CHELTUIELI LUNARE" - Apelarea componentei MonthlyExpenses CORECTAT */}
-        {tab==="monthly" && <MonthlyExpenses guard={ensureUnlocked} isDarkTheme={isDarkTheme} />}
+        {tab==="monthly" && <MonthlyExpenses guard={ensureUnlocked} isDarkTheme={isDarkTheme} resetSignal={resetTick} globalDate={globalDate} />}
 
 		{/* TABUL "MAIE.RO" - Aplicația separată MAIE.RO */}
         {tab==="maie" && <MaieApp isDarkTheme={isDarkTheme} />}
@@ -1500,3 +1517,4 @@ export default function App() {
    SFÂRȘITUL COMPLETULUI COD - TOATE PROBLEMELE REZOLVATE
    ACUM CU TEMĂ COMPLETĂ PENTRU TOATE COMPONENTELE
    =============================================== */
+
