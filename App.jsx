@@ -484,6 +484,18 @@ function MonthlyExpenses({ guard, isDarkTheme = true }) {
     setPurchCmp(sourcesCmp);
   }, [sourcesCmp, setPurchCmp]);
 
+  /* ASCULTĂ PENTRU SINCRONIZAREA GLOBALĂ A DATELOR */
+  useEffect(() => {
+    const handleSyncAllDates = (event) => {
+      const { date } = event.detail;
+      setSourcesDate(date);
+      setPurchDate(date);
+    };
+
+    window.addEventListener('syncAllDates', handleSyncAllDates);
+    return () => window.removeEventListener('syncAllDates', handleSyncAllDates);
+  }, [setSourcesDate, setPurchDate]);
+
   return (
     <GlassCard title="Cheltuieli lunare (salvare pe zile)" isDarkTheme={isDarkTheme}>
       {/* Bara pentru selecția și compararea datelor */}
@@ -934,6 +946,22 @@ export default function App() {
     window.globalAppDate = globalDate;
   }, [globalDate]);
 
+  /* FUNCȚIE GLOBALĂ PENTRU SINCRONIZAREA TUTUROR DATELOR */
+  const syncAllDatesToToday = () => {
+    const today = keyForDate(new Date());
+    setGlobalDate(today);
+    setDebDate(today);
+    setCashDate(today);
+    setPortDate(today);
+    setRecvDate(today);
+    
+    // Setează și funcția globală pentru MonthlyExpenses
+    window.syncAllDatesToToday = today;
+    
+    // Trigger un eveniment pentru a notifica toate componentele
+    window.dispatchEvent(new CustomEvent('syncAllDates', { detail: { date: today } }));
+  };
+
   return (
     <div className={`min-h-screen w-full transition-colors duration-300 ${
       isDarkTheme 
@@ -971,23 +999,33 @@ export default function App() {
                 <input 
                   type="date" 
                   value={globalDate} 
-                  onChange={(e) => setGlobalDate(e.target.value)}
+                  onChange={(e) => {
+                    const newDate = e.target.value;
+                    setGlobalDate(newDate);
+                    // Sincronizează și toate celelalte date
+                    setDebDate(newDate);
+                    setCashDate(newDate);
+                    setPortDate(newDate);
+                    setRecvDate(newDate);
+                    // Notifică și MonthlyExpenses
+                    window.dispatchEvent(new CustomEvent('syncAllDates', { detail: { date: newDate } }));
+                  }}
                   className={`appearance-none bg-transparent text-xs border-none outline-none cursor-pointer ${
                     isDarkTheme ? "text-white/90" : "text-gray-800"
                   }`}
-                  title="Selectează data pentru care vrei să vezi datele din toate tab-urile"
+                  title="Selectează data - sincronizează automat toate tab-urile"
                 />
               </div>
               
               {/* DATA DE AZI CLICKABILĂ - NOUĂ FUNCȚIONALITATE */}
               <button
-                onClick={() => setGlobalDate(keyForDate(new Date()))}
+                onClick={syncAllDatesToToday}
                 className={`px-2 py-1 rounded-full text-xs border transition-all hover:scale-105 cursor-pointer ${
                   isDarkTheme 
                     ? "bg-white/15 text-white/80 border-white/20 hover:bg-white/25" 
                     : "bg-black/10 text-gray-700 border-black/20 hover:bg-black/15"
                 }`}
-                title="Click pentru a reveni la ziua curentă"
+                title="Click pentru a sincroniza toate datele la ziua curentă în toate tab-urile"
               >
                 Azi: {todayStr}
               </button>
