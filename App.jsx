@@ -358,6 +358,17 @@ function useDailySnapshot(storageKey, initialRows) {
   useEffect(() => { setMap(m => ensureSnapshot(m, date, initialRows)); }, [date]);
   useEffect(() => { setMap(m => ensureSnapshot(m, compare, initialRows)); }, [compare]);
   
+  // Ascultă un eveniment global pentru resetarea tuturor datelor la ziua de azi
+  useEffect(() => {
+    const handler = (e) => {
+      const k = e?.detail || keyForDate(new Date());
+      setDate(k);
+      setCompare(k);
+    };
+    window.addEventListener("app:resetAllDatesToToday", handler);
+    return () => window.removeEventListener("app:resetAllDatesToToday", handler);
+  }, []);
+  
   const rows = map[date] || initialRows;
   const setRows = (newRows) => {
     setMap(m => {
@@ -981,7 +992,11 @@ export default function App() {
               
               {/* DATA DE AZI CLICKABILĂ - NOUĂ FUNCȚIONALITATE */}
               <button
-                onClick={() => setGlobalDate(keyForDate(new Date()))}
+                onClick={() => {
+                  const k = keyForDate(new Date());
+                  setGlobalDate(k);
+                  window.dispatchEvent(new CustomEvent("app:resetAllDatesToToday", { detail: k }));
+                }}
                 className={`px-2 py-1 rounded-full text-xs border transition-all hover:scale-105 cursor-pointer ${
                   isDarkTheme 
                     ? "bg-white/15 text-white/80 border-white/20 hover:bg-white/25" 
